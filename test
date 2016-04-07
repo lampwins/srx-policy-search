@@ -1,0 +1,8 @@
+a = ["the red fox", "the blue fox", "the green fox", "the yellow fox", "the red rabbit", "the yellow rabbit"]
+b = ["fox", "rabbit"]
+c = ["red", "blue"]
+
+d = set([e for e in a for f in b if f in e]) - set([e for e in a for f in c if f in e])
+
+for d in d:
+    print d
