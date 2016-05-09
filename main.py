@@ -7,12 +7,6 @@ from Service import Service
 from Configuration import Configuration
 import getpass
 
-
-address_objects = []
-search_objects = []
-policy_names = []
-policies = []
-
 host = raw_input("Host: ")
 user = raw_input("Username: ")
 password = getpass.getpass()
@@ -47,6 +41,11 @@ def get_junos_default_service(service):
     return get_generic_service(config.get_filtered_lines("junos-service", [service + " "], []))
 
 while True:
+
+    address_objects = []
+    search_objects = []
+    policy_names = []
+    policies = []
 
     search = raw_input("IP Address to search (or exit to quit): ")
     if search == "exit":
@@ -224,8 +223,11 @@ while True:
             # zones
 
             if src_zone is None:
-                src_zone = re.search('from-zone (.+?) ', policy_line)
-                src_zone = src_zone.group(1)
+                if "global policy" in policy_line:
+                    src_zone = dest_zone = "global"
+                else:
+                    src_zone = re.search('from-zone (.+?) ', policy_line)
+                    src_zone = src_zone.group(1)
             if dest_zone is None:
                 dest_zone = re.search('to-zone (.+?) ', policy_line)
                 dest_zone = dest_zone.group(1)
