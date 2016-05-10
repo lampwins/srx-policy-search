@@ -6,6 +6,7 @@ from ServiceGroup import ServiceGroup
 from Service import Service
 from Configuration import Configuration
 import getpass
+from ipcalc import Network
 
 host = raw_input("Host: ")
 user = raw_input("Username: ")
@@ -26,8 +27,6 @@ def get_generic_service(lines):
     sprotocol = "N/A"
     sdestination_port = "0"
     for service_line in lines:
-        service_line = service_line.strip('\n')
-        service_line = service_line.rstrip()
         if " protocol " in service_line:
             sprotocol = re.search('protocol (.*)', service_line)
             sprotocol = sprotocol.group(1)
@@ -54,25 +53,28 @@ while True:
     print "Searching..."
 
     for line in config.get_filtered_lines("address", [search], []):
-        line = line.strip('\n')
-        line = line.rstrip()
         m = re.search('address (.+?) ', line)
         if m:
             address_objects.append(m.group(1))
             search_objects.append(m.group(1))
 
+    # find networks containing the search
+    for line in config.get_filtered_lines("address", ["/"], [search, "/32", "description", "address-set"]):
+        m = re.search('address (.*) (.*)', line)
+        network = m.group(2)
+        if m:
+            if search in Network(network):
+                address_objects.append(m.group(1))
+                search_objects.append(m.group(1))
+
     for a in address_objects:
         for line in config.get_filtered_lines("address", [a], ["global address  "]):
-            line = line.strip('\n')
-            line = line.rstrip()
             m = re.search('address-set (.+?) ', line)
             if m:
                 search_objects.append(m.group(1))
 
     for s in search_objects:
         for line in config.get_filtered_lines("policy", [s], []):
-            line = line.strip('\n')
-            line = line.rstrip()
             m = re.search('policy (.+?) ', line)
             if m and m.group(1) not in policy_names:
                 policy_names.append(m.group(1))
@@ -87,8 +89,6 @@ while True:
         dest_zone = None
 
         for policy_line in config.get_filtered_lines("policy", ["policy " + p + " "], []):
-            policy_line = policy_line.strip('\n')
-            policy_line = policy_line.rstrip()
             for address_type in ["source-address", "destination-address"]:
                 if address_type in policy_line:
                     target_address = re.search(address_type + ' (.*)', policy_line)
@@ -105,8 +105,6 @@ while True:
                             # single address
 
                             target_address_line = stdout[0]
-                            target_address_line = target_address_line.strip('\n')
-                            target_address_line = target_address_line.rstrip()
 
                             if "dns-name" in target_address_line:
                                 atype = "dns"
@@ -130,13 +128,9 @@ while True:
                             group = AddressGroup(target_address)
 
                             for group_target_address_line in config.get_filtered_lines("address", ["address-set", target_address], ["description"]):
-                                group_target_address_line = group_target_address_line.strip('\n')
-                                group_target_address_line = group_target_address_line.rstrip()
                                 group_target_address = re.search(' address (.*)', group_target_address_line)
                                 group_target_address = group_target_address.group(1)
                                 for group_target_address_actual_line in config.get_filtered_lines("address", [group_target_address], ["description", "address-set"]):
-                                    group_target_address_actual_line = group_target_address_actual_line.strip('\n')
-                                    group_target_address_actual_line = group_target_address_actual_line.rstrip()
                                     if "global address " in group_target_address_actual_line:
                                         # single address
 
@@ -179,8 +173,6 @@ while True:
                         #  services in the set
                         service_objcet = ServiceGroup(service)
                         for service_set_line in stdout:
-                            service_set_line = service_set_line.strip('\n')
-                            service_set_line = service_set_line.rstrip()
                             if " application " in service_set_line:
                                 service_set_service = re.search('application (.*)', service_set_line)
                                 service_set_service = service_set_service.group(1)
@@ -210,7 +202,7 @@ while True:
 
             if action is None:
                 if " then " in policy_line and " log " not in policy_line:
-                    action = re.search('then (.+?) ', policy_line)
+                    action = re.search('then (.+?)[^ ]+', policy_line)
                     action = action.group(1)
 
             #  description

@@ -38,7 +38,13 @@ class Configuration(object):
 
     def get_lines(self, section, match_terms, except_terms):
 
-        return [x for x in section if all(m in x for m in match_terms) and not any(e in x for e in except_terms)]
+        lines = [x for x in section if all(m in x for m in match_terms) and not any(e in x for e in except_terms)]
+        return_lines = []
+        for line in lines:
+            line = line.strip('\n')
+            return_lines.append(line.rstrip())
+
+        return return_lines
 
     def get_filtered_lines(self, section, match_terms, except_terms):
 
