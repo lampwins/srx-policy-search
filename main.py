@@ -16,20 +16,24 @@ while True:
     polices = []
     search = None
 
+    print "[0] Exit/Quit"
     print "[1] IP"
+    print "[2] Service"
     search_type = raw_input("Choose Search Type: ")
+    print
 
     if search_type == "1":
-
-        print "Usage: Enter a single IP address or CIDR notation (/32 is assumed) to search or 'exit' to quit. " \
+        print "Usage: Enter a single IP address or CIDR notation (/32 is assumed) to search." \
                   "Surround in quotes to search explicitly, otherwise match containing subnets."
-        search = raw_input("Search: ")
-        if search == "exit":
-            exit(1)
-
-        print "Searching..."
-
+        search = raw_input("IP to search: ")
         polices = searcher.search_by_ip(search)
+
+    elif search_type == "2":
+        print "Usage: Enter protocol and destination port to search"
+        protocol = raw_input("Protocol (tcp, udp): ")
+        port = raw_input("Port (80, 5000-5002): ")
+        search = protocol + "/" + port
+        polices = searcher.search_by_service(protocol, port)
 
     print "\nPolicies Matching " + search + ":\n\n"
     for p in polices:

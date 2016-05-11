@@ -36,7 +36,7 @@ class Search:
         return sprotocol, sdestination_port
 
     def get_junos_default_service(self, service):
-        return self.get_generic_service(self.config.get_filtered_lines("junos-service", [service + " "], []))
+        return self.get_generic_service(self.config.get_filtered_lines("junos-service", [self.pad(service)], []))
 
     def parse_address(self, target):
 
@@ -77,7 +77,6 @@ class Search:
 
         address_objects = []
         search_objects = []
-        policy_names = []
 
         if "\"" not in ip:
             # find networks containing the search
@@ -106,13 +105,47 @@ class Search:
                 if m:
                     search_objects.append(m.group(1))
 
-        for s in search_objects:
-            for line in self.config.get_filtered_lines("policy", [self.lpad(s)], []):
-                m = re.search('policy (.+?) ', line)
-                if m and m.group(1) not in policy_names:
-                    policy_names.append(m.group(1))
+        return self.search(self.get_policies_for_search_terms(search_objects))
 
-        return self.search(policy_names)
+    def search_by_service(self, protocol, port):
+
+        search_objects = set()
+        service_candidates = set()
+
+        service_types = ["service", "junos-service"]
+
+        for service_type in service_types:
+            for line in self.config.get_filtered_lines(service_type, [self.lpad("protocol " + protocol)], ["application-set"]):
+                m = re.search('application (.+?) ', line)
+                if m:
+                    service_candidates.add(m.group(1))
+            for service in service_candidates:
+                for service_line in self.config.get_filtered_lines(service_type, [self.lpad("destination-port " + port), self.pad(service)], ["application-set"]):
+                    # check for false positive
+                    m = re.search(' destination-port ' + port + '$', service_line)
+                    if m:
+                        search_objects.add(service)
+                    # find any groups
+                    for line in self.config.get_filtered_lines(service_type, ["application-set", self.lpad(service)], ["application-set"]):
+                        # check for false positive
+                        m = re.search(' application ' + service + '$', line)
+                        if m:
+                            m = re.search('application-set (.+?) ', line)
+                            if m:
+                                search_objects.add(m.group(1))
+
+        return self.search(self.get_policies_for_search_terms(search_objects))
+
+    def get_policies_for_search_terms(self, terms):
+
+        policy_names = []
+
+        for term in terms:
+            for line in self.config.get_filtered_lines("policy", [self.lpad(term)], []):
+                m = re.search('policy (.+?) ', line)
+                if m.group(1) not in policy_names:
+                    policy_names.append(m.group(1))
+        return policy_names
 
     def search(self, policy_names):
 
