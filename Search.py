@@ -134,14 +134,16 @@ class Search:
                         if target_address:
                             target_address = target_address.group(1)
 
-                            if target_address == "any":
-                                src.append(Address("any", "any", "any"))
-                                continue  # "any" address, move on
-
                             if address_type == "source-address":
-                                src.append(self.parse_address(target_address))
+                                if target_address == "any":
+                                    src.append(Address("any", "any", "any"))
+                                else:
+                                    src.append(self.parse_address(target_address))
                             else:
-                                dest.append(self.parse_address(target_address))
+                                if target_address == "any":
+                                    dest.append(Address("any", "any", "any"))
+                                else:
+                                    dest.append(self.parse_address(target_address))
 
                 #  services
 
