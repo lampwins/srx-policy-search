@@ -38,6 +38,6 @@ class Policy:
         for s in self.services:
             str += "\t\t" + s + "\n"
         str += "\taction: " + self.action + "\n"
-        str += "\tdescription: " + self.description
+        str += "\tdescription: \"" + self.description + "\""
 
         return str
