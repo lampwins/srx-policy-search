@@ -16,6 +16,20 @@ config = Configuration(host, user, password)
 print "Config retrieved"
 
 
+def pad(s):
+    s = s.ljust(len(s) + 1)
+    s = s.rjust(len(s) + 1)
+    return s
+
+
+def lpad(s):
+    return s.rjust(len(s) + 1)
+
+
+def rpad(s):
+    return s.ljust(len(s) + 1)
+
+
 def get_address(address):
     for p in policies:
         if p.get_address(address):
@@ -39,6 +53,43 @@ def get_generic_service(lines):
 def get_junos_default_service(service):
     return get_generic_service(config.get_filtered_lines("junos-service", [service + " "], []))
 
+
+def parse_address(config, target):
+
+    # base case - single address
+    address_lines = config.get_filtered_lines("address", [pad(target)], ["description", "address-set"])
+    if len(address_lines) > 0:
+        target_address_line = address_lines[0]
+
+        if "dns-name" in target_address_line:
+            atype = "dns"
+            target_address_value_search = re.search('address ' + target + ' dns-name (.*)',
+                                                    target_address_line)
+        else:
+            atype = "ipv4"
+            target_address_value_search = re.search('address ' + target + ' (.*)',
+                                                    target_address_line)
+        target_address_value = target_address_value_search.group(1)
+        return Address(target, atype, target_address_value)
+    else:
+        # group
+        group = AddressGroup(target)
+        for group_target_address_line in config.get_filtered_lines("address", ["address-set", pad(target)],
+                                                                   ["description"]):
+            if group_target_address_line.find(pad(target)) == -1:
+                # bogus line - target is a member of a currently out of scope group
+                continue
+
+            group_target_address = re.search(target + ' address(?:-set)? (.*)', group_target_address_line)
+            group_target_address = group_target_address.group(1)
+
+            # recurse
+            address = parse_address(config, group_target_address)
+            group.add_address(address)
+
+        return group
+
+
 while True:
 
     address_objects = []
@@ -46,29 +97,39 @@ while True:
     policy_names = []
     policies = []
 
-    search = raw_input("IP Address to search (or exit to quit): ")
+    print "\nUsage: Enter a sinlge IP address or CIDR notation (/32 is assumed) to search or 'exit' to quit. " \
+          "Surround in quotes to search explicitly, otherwise match containing subnets."
+    search = raw_input("Search: ")
     if search == "exit":
         exit(1)
 
+    if "\"" not in search:
+        # find networks containing the search
+        for line in config.get_filtered_lines("address", ["/"], [search, "/32", "description", "address-set"]):
+            m = re.search('address (.*) (.*)', line)
+            network = m.group(2)
+            if m:
+                if search in Network(network):
+                    address_objects.append(m.group(1))
+                    search_objects.append(m.group(1))
+    else:
+        search = search.strip("\"")
+
+    if "/" not in search:
+        search += "/32"
+
+    print lpad(search)
+
     print "Searching..."
 
-    for line in config.get_filtered_lines("address", [search], []):
+    for line in config.get_filtered_lines("address", [lpad(search)], ["address-set"]):
         m = re.search('address (.+?) ', line)
         if m:
             address_objects.append(m.group(1))
             search_objects.append(m.group(1))
 
-    # find networks containing the search
-    for line in config.get_filtered_lines("address", ["/"], [search, "/32", "description", "address-set"]):
-        m = re.search('address (.*) (.*)', line)
-        network = m.group(2)
-        if m:
-            if search in Network(network):
-                address_objects.append(m.group(1))
-                search_objects.append(m.group(1))
-
     for a in address_objects:
-        for line in config.get_filtered_lines("address", [a], ["global address  "]):
+        for line in config.get_filtered_lines("address", [a], ["global address "]):
             m = re.search('address-set (.+?) ', line)
             if m:
                 search_objects.append(m.group(1))
@@ -99,59 +160,10 @@ while True:
                             src.append(Address("any", "any", "any"))
                             continue  # "any" address, move on
 
-                        stdout = config.get_filtered_lines("address", [target_address], ["description", "address-set"])
-                        if len(stdout) != 0:
-
-                            # single address
-
-                            target_address_line = stdout[0]
-
-                            if "dns-name" in target_address_line:
-                                atype = "dns"
-                                target_address_value_search = re.search('address ' + target_address + ' dns-name (.*)',
-                                                                        target_address_line)
-                            else:
-                                atype = "ipv4"
-                                target_address_value_search = re.search('address ' + target_address + ' (.*)',
-                                                                        target_address_line)
-
-                            target_address_value = target_address_value_search.group(1)
-                            if address_type == "source-address":
-                                src.append(Address(target_address, atype, target_address_value))
-                            else:
-                                dest.append(Address(target_address, atype, target_address_value))
-
+                        if address_type == "source-address":
+                            src.append(parse_address(config, target_address))
                         else:
-
-                            #  group address
-
-                            group = AddressGroup(target_address)
-
-                            for group_target_address_line in config.get_filtered_lines("address", ["address-set", target_address], ["description"]):
-                                group_target_address = re.search(' address (.*)', group_target_address_line)
-                                group_target_address = group_target_address.group(1)
-                                for group_target_address_actual_line in config.get_filtered_lines("address", [group_target_address], ["description", "address-set"]):
-                                    if "global address " in group_target_address_actual_line:
-                                        # single address
-
-                                        if "dns-name" in group_target_address_actual_line:
-                                            atype = "dns"
-                                            target_address_value_search = re.search(
-                                                'address ' + group_target_address + ' dns-name (.*)',
-                                                group_target_address_actual_line)
-                                        else:
-                                            atype = "ipv4"
-                                            target_address_value_search = re.search('address ' + group_target_address + ' (.*)',
-                                                                                    group_target_address_actual_line)
-
-                                        target_address_value = target_address_value_search.group(1)
-                                        group.add_address(
-                                            Address(group_target_address, atype, target_address_value))
-
-                            if address_type == "source-address":
-                                src.append(group)
-                            else:
-                                dest.append(group)
+                            dest.append(parse_address(config, target_address))
 
             #  services
 
