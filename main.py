@@ -13,31 +13,51 @@ print "Config retrieved\n"
 
 while True:
 
-    polices = []
+    policies = []
     search = None
 
     print "[0] Exit/Quit"
     print "[1] IP"
     print "[2] Service"
+    print "[3] Action"
     search_type = raw_input("Choose Search Type: ")
     print
 
-    if search_type == "1":
+    if search_type == "0":
+        print "Bye."
+        exit(1)
+
+    elif search_type == "1":
         print "Usage: Enter a single IP address or CIDR notation (/32 is assumed) to search." \
                   "Surround in quotes to search explicitly, otherwise match containing subnets."
         search = raw_input("IP to search: ")
-        polices = searcher.search_by_ip(search)
+        print "\nSearching...\n"
+        policies = searcher.search_by_ip(search)
 
     elif search_type == "2":
         print "Usage: Enter protocol and destination port to search"
         protocol = raw_input("Protocol (tcp, udp): ")
-        port = raw_input("Port (80, 5000-5002): ")
-        search = protocol + "/" + port
-        polices = searcher.search_by_service(protocol, port)
+        if protocol not in ["tcp", "udp"]:
+            print "Protocol not valid."
+            search = None
+        else:
+            port = raw_input("Port (80, 5000-5002): ")
+            search = protocol + "/" + port
+            print "\nSearching...\n"
+            policies = searcher.search_by_service(protocol, port)
 
-    print "\nSearching...\n"
+    elif search_type == "3":
+        print "Usage: Enter policy action to search"
+        search = raw_input("Action (permit, deny, reject): ")
+        if search not in ["permit", "deny", "reject"]:
+            print "Action is not valid.\n"
+            search = None
+        else:
+            print "\nSearching...\n"
+            policies = searcher.search_by_action(search)
 
-    print "\nPolicies Matching " + search + ":\n\n"
-    for p in polices:
-        print p
-        print
+    if search is not None:
+        print "\nPolicies Matching " + search + ":\n\n"
+        for p in policies:
+            print p
+            print

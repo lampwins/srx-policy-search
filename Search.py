@@ -73,6 +73,18 @@ class Search:
 
             return group
 
+    def search_by_action(self, action):
+
+        # special case - do not have to also get policies from search terms
+
+        policy_names = set()
+
+        for line in self.config.get_filtered_lines("policy", [self.pad("then " + action)], ["log"]):
+            m = re.search('policy (.+?) ', line)
+            policy_names.add(m.group(1))
+
+        return self.search(policy_names)
+
     def search_by_ip(self, ip):
 
         address_objects = []
@@ -132,13 +144,12 @@ class Search:
 
     def get_policies_for_search_terms(self, terms):
 
-        policy_names = []
+        policy_names = set()
 
         for term in terms:
             for line in self.config.get_filtered_lines("policy", [self.pad(term)], []):
                 m = re.search('policy (.+?) ', line)
-                if m.group(1) not in policy_names:
-                    policy_names.append(m.group(1))
+                policy_names.add(m.group(1))
         return policy_names
 
     def search(self, policy_names):
