@@ -1,4 +1,5 @@
 import paramiko
+import re
 
 
 class Configuration(object):
@@ -38,10 +39,15 @@ class Configuration(object):
 
     def get_lines(self, section, match_terms, except_terms):
 
-        lines = [x for x in section if all(m in x for m in match_terms) and not any(e in x for e in except_terms)]
+        section_lines = []
+        for line in section:
+            line = line.strip('\n')
+            line += " " # tricky; used to allow or explicit matches on the last word in the line
+            section_lines.append(line)
+
+        lines = [x for x in section_lines if all(m in x for m in match_terms) and not any(e in x for e in except_terms)]
         return_lines = []
         for line in lines:
-            line = line.strip('\n')
             return_lines.append(line.rstrip())
 
         return return_lines

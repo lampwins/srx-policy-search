@@ -35,6 +35,8 @@ while True:
         search = protocol + "/" + port
         polices = searcher.search_by_service(protocol, port)
 
+    print "\nSearching...\n"
+
     print "\nPolicies Matching " + search + ":\n\n"
     for p in polices:
         print p

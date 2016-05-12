@@ -41,7 +41,7 @@ class Search:
     def parse_address(self, target):
 
         # base case - single address
-        address_lines = self.config.get_filtered_lines("address", [self.pad(target)], ["description", "address-set"])
+        address_lines = self.config.get_filtered_lines("address", [self.pad("address " + target)], ["description", "address-set"])
         if len(address_lines) > 0:
             target_address_line = address_lines[0]
 
@@ -115,24 +115,18 @@ class Search:
         service_types = ["service", "junos-service"]
 
         for service_type in service_types:
-            for line in self.config.get_filtered_lines(service_type, [self.lpad("protocol " + protocol)], ["application-set"]):
+            for line in self.config.get_filtered_lines(service_type, [self.pad("protocol " + protocol)], ["application-set"]):
                 m = re.search('application (.+?) ', line)
                 if m:
                     service_candidates.add(m.group(1))
             for service in service_candidates:
-                for service_line in self.config.get_filtered_lines(service_type, [self.lpad("destination-port " + port), self.pad(service)], ["application-set"]):
-                    # check for false positive
-                    m = re.search(' destination-port ' + port + '$', service_line)
-                    if m:
-                        search_objects.add(service)
+                if len(self.config.get_filtered_lines(service_type, [self.pad("destination-port " + port), self.pad("application " + service)], ["application-set"])) > 0:
+                    search_objects.add(service)
                     # find any groups
-                    for line in self.config.get_filtered_lines(service_type, ["application-set", self.lpad(service)], ["application-set"]):
-                        # check for false positive
-                        m = re.search(' application ' + service + '$', line)
+                    for line in self.config.get_filtered_lines(service_type, ["application-set", self.pad(service)], []):
+                        m = re.search('application-set (.+?) ', line)
                         if m:
-                            m = re.search('application-set (.+?) ', line)
-                            if m:
-                                search_objects.add(m.group(1))
+                            search_objects.add(m.group(1))
 
         return self.search(self.get_policies_for_search_terms(search_objects))
 
@@ -141,7 +135,7 @@ class Search:
         policy_names = []
 
         for term in terms:
-            for line in self.config.get_filtered_lines("policy", [self.lpad(term)], []):
+            for line in self.config.get_filtered_lines("policy", [self.pad(term)], []):
                 m = re.search('policy (.+?) ', line)
                 if m.group(1) not in policy_names:
                     policy_names.append(m.group(1))
@@ -190,7 +184,7 @@ class Search:
                         protocol, destination_port = self.get_junos_default_service(service)
                         service_objcet = Service(service, protocol, destination_port)
                     else:
-                        stdout = self.config.get_filtered_lines("service", ["application-set", service], ["description"])
+                        stdout = self.config.get_filtered_lines("service", ["application-set", self.pad(service)], ["description"])
                         if len(stdout) != 0:
                             #  services in the set
                             service_objcet = ServiceGroup(service)
@@ -198,7 +192,7 @@ class Search:
                                 if " application " in service_set_line:
                                     service_set_service = re.search('application (.*)', service_set_line)
                                     service_set_service = service_set_service.group(1)
-                                    stdout = self.config.get_filtered_lines("service", [service_set_service], ["application-set", "description"])
+                                    stdout = self.config.get_filtered_lines("service", [self.pad(service_set_service)], ["application-set", "description"])
                                     if " term " not in service_set_line[0]:
                                         #  found the actual service
                                         protocol, destination_port = self.get_generic_service(stdout)
@@ -211,11 +205,11 @@ class Search:
                                             group_term = group_term.group(1)
                                             terms.add(group_term)
                                         for term in terms:
-                                            protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [service_set_service, term], ["application-set", "description"]))
+                                            protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [self.pad(service_set_service), self.pad(term)], ["application-set", "description"]))
                                             service_objcet.add_service(Service(term, protocol, destination_port))
 
                         else:
-                            protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [service], ["application-set", "description"]))
+                            protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [self.pad(service)], ["application-set", "description"]))
                             service_objcet = Service(service, protocol, destination_port)
 
                     services.append(service_objcet)

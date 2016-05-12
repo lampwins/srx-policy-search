@@ -1,8 +1,0 @@
-def pad(s):
-    s = s.ljust(len(s) + 1)
-    s = s.rjust(len(s) + 1)
-    return s
-
-print pad("hello")
-
-print "hello".rjust(5).ljust(6)
