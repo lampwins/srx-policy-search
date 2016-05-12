@@ -218,7 +218,7 @@ class Search:
 
                 if action is None:
                     if " then " in policy_line and " log " not in policy_line:
-                        action = re.search('then (.+?)[^ ]+', policy_line)
+                        action = re.search('then (permit|deny|reject)', policy_line)
                         action = action.group(1)
 
                 #  description
