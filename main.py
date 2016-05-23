@@ -1,7 +1,7 @@
-from Search import Search
-from Configuration import Configuration
 import getpass
 
+from lib.Configuration import Configuration
+from lib.Search import Search
 
 host = raw_input("Host: ")
 user = raw_input("Username: ")
