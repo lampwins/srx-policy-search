@@ -1,10 +1,12 @@
 import re
-from Policy import Policy
-from Address import Address
+
 from AddressGroup import AddressGroup
-from ServiceGroup import ServiceGroup
-from Service import Service
 from ipcalc import Network
+
+from Service import Service
+from ServiceGroup import ServiceGroup
+from lib.Address import Address
+from lib.Policy import Policy
 
 
 class Search:

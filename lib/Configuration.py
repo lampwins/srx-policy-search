@@ -1,5 +1,4 @@
 import paramiko
-import re
 
 
 class Configuration(object):
