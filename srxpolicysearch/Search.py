@@ -75,6 +75,10 @@ class Search:
 
             return group
 
+    def search_by_name(self, policy_name):
+
+        return self.search([policy_name])
+
     def search_by_action(self, action):
 
         # special case - do not have to also get policies from search terms

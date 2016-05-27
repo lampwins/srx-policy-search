@@ -1,7 +1,8 @@
 import getpass
 
-from lib.Configuration import Configuration
-from lib.Search import Search
+from srxpolicysearch.Search import Search
+
+from srxpolicysearch.Configuration import Configuration
 
 host = raw_input("Host: ")
 user = raw_input("Username: ")
@@ -20,6 +21,7 @@ while True:
     print "[1] IP"
     print "[2] Service"
     print "[3] Action"
+    print "[4] Policy name"
     search_type = raw_input("Choose Search Type: ")
     print
 
@@ -55,6 +57,12 @@ while True:
         else:
             print "\nSearching...\n"
             policies = searcher.search_by_action(search)
+
+    elif search_type == "4":
+        print "Usage: Enter policy name"
+        search = raw_input("Name: ")
+        print "\nSearching...\n"
+        policies = searcher.search_by_name(search)
 
     if search is not None:
         print "\nPolicies Matching " + search + ":\n\n"
