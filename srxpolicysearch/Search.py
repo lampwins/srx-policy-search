@@ -1,12 +1,12 @@
 import re
 
-from AddressGroup import AddressGroup
 from ipcalc import Network
+from Address import Address
 
+from AddressGroup import AddressGroup
 from Service import Service
 from ServiceGroup import ServiceGroup
-from lib.Address import Address
-from lib.Policy import Policy
+from srxpolicysearch.Policy import Policy
 
 
 class Search:
@@ -205,21 +205,25 @@ class Search:
                                 if " application " in service_set_line:
                                     service_set_service = re.search('application (.*)', service_set_line)
                                     service_set_service = service_set_service.group(1)
-                                    stdout = self.config.get_filtered_lines("service", [self.pad(service_set_service)], ["application-set", "description"])
-                                    if " term " not in service_set_line[0]:
-                                        #  found the actual service
-                                        protocol, destination_port = self.get_generic_service(stdout)
+                                    if "junos-" in service_set_service:
+                                        protocol, destination_port = self.get_junos_default_service(service_set_service)
                                         service_objcet.add_service(Service(service_set_service, protocol, destination_port))
                                     else:
-                                        #  termed service object
-                                        terms = set()
-                                        for lines in stdout:
-                                            group_term = re.search(' term (.+?) ', service_set_line)
-                                            group_term = group_term.group(1)
-                                            terms.add(group_term)
-                                        for term in terms:
-                                            protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [self.pad(service_set_service), self.pad(term)], ["application-set", "description"]))
-                                            service_objcet.add_service(Service(term, protocol, destination_port))
+                                        stdout = self.config.get_filtered_lines("service", [self.pad(service_set_service)], ["application-set", "description"])
+                                        if " term " not in service_set_line[0]:
+                                            #  found the actual service
+                                            protocol, destination_port = self.get_generic_service(stdout)
+                                            service_objcet.add_service(Service(service_set_service, protocol, destination_port))
+                                        else:
+                                            #  termed service object
+                                            terms = set()
+                                            for lines in stdout:
+                                                group_term = re.search(' term (.+?) ', service_set_line)
+                                                group_term = group_term.group(1)
+                                                terms.add(group_term)
+                                            for term in terms:
+                                                protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [self.pad(service_set_service), self.pad(term)], ["application-set", "description"]))
+                                                service_objcet.add_service(Service(term, protocol, destination_port))
 
                         else:
                             protocol, destination_port = self.get_generic_service(self.config.get_filtered_lines("service", [self.pad(service)], ["application-set", "description"]))

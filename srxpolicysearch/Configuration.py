@@ -5,7 +5,10 @@ class Configuration(object):
 
     client = paramiko.SSHClient()
 
-    def __init__(self, host, username, password):
+    def __init__(self, host=None, username=None, password=None):
+
+        if host is None or username is None or password is None:
+            return
 
         print "Retrieving config..."
 
