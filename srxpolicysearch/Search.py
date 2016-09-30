@@ -75,6 +75,17 @@ class Search:
 
             return group
 
+    def search_by_all(self):
+
+        search_terms = set()
+
+        for line in self.config.get_filtered_lines("policy", [self.pad("then")], []):
+            policy = re.search("policy (.+?) ", line)
+            policy = policy.group(1)
+            search_terms.add(policy)
+
+        return self.search(self.get_policies_for_search_terms(search_terms))
+
     def search_by_name(self, policy_name):
 
         return self.search([policy_name])
@@ -154,24 +165,34 @@ class Search:
 
         for term in terms:
             for line in self.config.get_filtered_lines("policy", [self.pad(term)], []):
-                m = re.search('policy (.+?) ', line)
-                policy_names.add(m.group(1))
+                if "policies global" in line:
+                    m = re.search('policy (.*?) ', line)
+                    policy_names.add(("global", "global", m.group(1)))
+                else:
+                    m = re.search(' from-zone (.*) to-zone (.*) policy (.*?) ', line)
+                    policy_names.add((m.group(1), m.group(2), m.group(3)))
         return policy_names
 
-    def search(self, policy_names):
+    def search(self, policy_tuples):
 
         policies = []
 
-        for p in policy_names:
+        for policy_tuple in policy_tuples:
             src = []
             dest = []
             services = []
             action = None
             description = None
-            src_zone = None
-            dest_zone = None
+            src_zone = policy_tuple[0]
+            dest_zone = policy_tuple[1]
+            policy_name = policy_tuple[2]
 
-            for policy_line in self.config.get_filtered_lines("policy", ["policy" + self.pad(p)], []):
+            if src_zone == dest_zone == "global":
+                match_line = "global policy " + self.rpad(policy_name)
+            else:
+                match_line = "from-zone" + self.pad(src_zone) + "to-zone" + self.pad(dest_zone) + "policy" + self.pad(policy_name)
+
+            for policy_line in self.config.get_filtered_lines("policy", [match_line], []):
                 for address_type in ["source-address", "destination-address"]:
                     if address_type in policy_line:
                         target_address = re.search(address_type + ' (.*)', policy_line)
@@ -249,20 +270,8 @@ class Search:
                     description = description.group(1)
                     description = description.strip('"')
 
-                # zones
-
-                if src_zone is None:
-                    if "global policy" in policy_line:
-                        src_zone = dest_zone = "global"
-                    else:
-                        src_zone = re.search('from-zone (.+?) ', policy_line)
-                        src_zone = src_zone.group(1)
-                if dest_zone is None:
-                    dest_zone = re.search('to-zone (.+?) ', policy_line)
-                    dest_zone = dest_zone.group(1)
-
             if description is None:
                 description = ""
-            policies.append(Policy(p, description, src, dest, action, services, src_zone, dest_zone))
+            policies.append(Policy(policy_name, description, src, dest, action, services, src_zone, dest_zone))
 
         return policies

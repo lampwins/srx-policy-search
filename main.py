@@ -22,6 +22,7 @@ while True:
     print "[2] Service"
     print "[3] Action"
     print "[4] Policy name"
+    print "[5] List all policies"
     search_type = raw_input("Choose Search Type: ")
     print
 
@@ -63,6 +64,10 @@ while True:
         search = raw_input("Name: ")
         print "\nSearching...\n"
         policies = searcher.search_by_name(search)
+
+    elif search_type == "5":
+        print "\nSearching...\n"
+        policies = searcher.search_by_all()
 
     if search is not None:
         print "\nPolicies Matching " + search + ":\n\n"

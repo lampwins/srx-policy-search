@@ -9,5 +9,5 @@ setup(
     author='John Anderson',
     author_email='lampwins@gmail.com',
     description='Search security policy on the Juniper SRX platform',
-    install_requires=['paramiko']
+    install_requires=['paramiko', 'ipcalc']
 )
