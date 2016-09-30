@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='srxpolicysearch',
-    version='0.0.5',
+    version='0.0.6',
     packages=['srxpolicysearch'],
     url='https://github.com/lampwins/srx-policy-search',
     license='MIT',
