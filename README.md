@@ -1,5 +1,7 @@
 # SRX Policy Search
 
+**NOTE: This project is now considered deprecated and is not likely to see any future development. This was a first attempt at parsing and automating parts of Juniper SRX security policy. It is rather inefficient as it is all string manipulation and screen scraping. Fear not though, these efforts are being rolled into orangengine https://github.com/lampwins/orangengine**
+
 This is a simple Python script that searches a Juniper SRX policy for references to a provided search term.
 You can search policies by either IP address, service, or action.
 
